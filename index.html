@@ -1,41 +1,223 @@
-const loadingBox = document.getElementById('loadingBox');
-        const resultBox = document.getElementById('resultBox');
-        
-        if(!urlInput) {
-            alert('कृपया पहले एक टेराबॉक्स लिंक पेस्ट करें!');
-            return;
-        }
-        
-        loadingBox.classList.remove('hidden');
-        resultBox.classList.add('hidden');
-        
-        try {
-            // नोट: हम बिना किसी CORS समस्या के सीधे अपने सर्वर एंडपॉइंट को हिट कर रहे हैं
-            const response = await fetch('/api/v1/fetch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: urlInput })
-            });
-            
-            if (!response.ok) throw new Error('API सर्वर से कनेक्शन फेल हो गया।');
-            
-            const result = await response.json();
-            loadingBox.classList.add('hidden');
-            
-            if(result.status === 'success') {
-                document.getElementById('fileName').innerText = result.name;
-                document.getElementById('playLink').href = result.download_url;
-                document.getElementById('downloadLink').href = result.download_url;
-                resultBox.classList.remove('hidden');
-            } else {
-                alert('एरर: लिंक प्रोसेस नहीं हो पाया। कृपया लिंक जांचें।');
-            }
-        } catch (error) {
-            loadingBox.classList.add('hidden');
-            alert('त्रुटि: ' + error.message);
-        }
-    }
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeraBox Player - Stream & Download</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        body { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); min-height: 100vh; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glow { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
+        .spinner { border: 3px solid rgba(255, 255, 255, 0.3); border-top: 3px solid #8b5cf6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4); }
+        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(56, 239, 125, 0.4); }
+        .video-card { transition: all 0.3s; }
+        .video-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
+    </style>
+</head>
+<body class="text-white">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <div class="flex items-center justify-center mb-4">
+                <i class="fas fa-play-circle text-6xl text-purple-400"></i>
+            </div>
+            <h1 class="text-5xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                TeraBox Player
+            </h1>
+            <p class="text-gray-300 text-lg">Stream & Download Videos Instantly</p>
+        </header>
 
+        <!-- Input Section -->
+        <div class="glass rounded-2xl p-8 mb-8 glow">
+            <div class="mb-6">
+                <label class="block text-sm font-semibold mb-3 text-purple-300">
+                    <i class="fas fa-link mr-2"></i>Paste TeraBox Link
+                </label>
+                <input 
+                    type="text" 
+                    id="teraboxUrl" 
+                    placeholder="https://terabox.com/s/1xxxxx or https://1024tera.com/s/1xxxxx"
+                    class="w-full px-6 py-4 rounded-xl bg-gray-900/50 border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none text-white placeholder-gray-500 transition-all"
+                >
+            </div>
+            
+            <button 
+                onclick="extractVideo()"
+                class="btn-primary w-full py-4 px-8 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-3"
+            >
+                <i class="fas fa-magic"></i>
+                <span>Extract Video</span>
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden text-center py-12">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-purple-300 text-lg">Extracting video links...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="hidden glass rounded-xl p-6 mb-8 border-2 border-red-500/50">
+            <div class="flex items-start gap-4">
+                <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                <div>
+                    <h3 class="font-bold text-lg mb-2 text-red-400">Error</h3>
+                    <p id="errorMessage" class="text-gray-300"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden fade-in">
+            <div class="glass rounded-2xl p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-purple-300">
+                        <i class="fas fa-video mr-2"></i>Available Videos
+                    </h2>
+                    <span id="fileCount" class="glass px-4 py-2 rounded-full text-sm font-semibold"></span>
+                </div>
+                
+                <div id="videoList" class="space-y-4">
+                    <!-- Videos will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-400">
+            <p class="mb-2">
+                <i class="fas fa-code mr-2"></i>Built with FastAPI & Tailwind CSS
+            </p>
+            <p class="text-sm">Cookie-less streaming technology</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_URL = '/api/extract';
+
+        async function extractVideo() {
+            const url = document.getElementById('teraboxUrl').value.trim();
+            
+            if (!url) {
+                showError('Please enter a TeraBox URL');
+                return;
+            }
+
+            // Hide previous results
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${API_URL}?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to extract video');
+                }
+
+                displayResults(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function displayResults(data) {
+            const videoList = document.getElementById('videoList');
+            const fileCount = document.getElementById('fileCount');
+            
+            fileCount.textContent = `${data.total_files} File${data.total_files > 1 ? 's' : ''}`;
+            videoList.innerHTML = '';
+
+            data.files.forEach((file, index) => {
+                const card = document.createElement('div');
+                card.className = 'video-card glass rounded-xl p-6';
+                
+                card.innerHTML = `
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+                        <div class="flex-shrink-0">
+                            ${file.thumbnail ? 
+                                `<img src="${file.thumbnail}" alt="${file.filename}" class="w-32 h-20 object-cover rounded-lg">` :
+                                `<div class="w-32 h-20 bg-purple-900/30 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-file-video text-3xl text-purple-400"></i>
+                                </div>`
+                            }
+                        </div>
+                        
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-lg mb-2 text-white truncate">${file.filename}</h3>
+                            <div class="flex flex-wrap gap-3 text-sm text-gray-400">
+                                <span><i class="fas fa-hdd mr-1"></i>${file.size_formatted}</span>
+                                <span><i class="fas fa-tag mr-1"></i>${file.type}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            <button 
+                                onclick="playVideo('${file.stream_url}')"
+                                class="btn-primary px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                            >
+                                <i class="fas fa-play"></i>
+                                <span>Play</span>
+                            </button>
+                            
+                            <button 
+                                onclick="downloadVideo('${file.download_url}', '${file.filename}')"
+                                class="btn-success px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                            >
+                                <i class="fas fa-download"></i>
+                                <span>Download</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                videoList.appendChild(card);
+            });
+
+            document.getElementById('results').classList.remove('hidden');
+        }
+
+        function playVideo(url) {
+            window.open(url, '_blank');
+        }
+
+        function downloadVideo(url, filename) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('error').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('error').classList.add('hidden');
+            }, 5000);
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('teraboxUrl').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                extractVideo();
+            }
+        });
+    </script>
 </body>
 </html>
