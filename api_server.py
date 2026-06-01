@@ -41,38 +41,90 @@ def extract_surl(url: str) -> Optional[str]:
 async def get_terabox_data(surl: str) -> dict:
     """Fetch TeraBox data from public endpoint without cookies"""
     async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-        # Expand short link first
-        short_url = f"https://terabox.com/s/{surl}"
-        
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/json, text/plain, */*",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
             "Referer": "https://www.terabox.com/",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
         }
         
         try:
-            # Get the expanded URL
-            response = await client.get(short_url, headers=headers)
-            final_url = str(response.url)
+            # Try multiple URL formats to expand the short link
+            urls_to_try = [
+                f"https://terabox.com/s/{surl}",
+                f"https://www.terabox.com/s/{surl}",
+                f"https://1024tera.com/s/{surl}",
+                f"https://www.1024tera.com/s/{surl}",
+            ]
             
-            # Extract surl from final URL if needed
-            surl_match = re.search(r'surl=([^&]+)', final_url)
-            if surl_match:
-                surl = surl_match.group(1)
+            final_url = None
+            expanded_surl = surl
             
-            # Call public API endpoint
-            api_url = f"https://terabox.com/share/list?shorturl={surl}&root=1"
-            api_response = await client.get(api_url, headers=headers)
+            # Try to expand the URL and extract surl
+            for url in urls_to_try:
+                try:
+                    response = await client.get(url, headers=headers, timeout=15)
+                    final_url = str(response.url)
+                    
+                    # Extract surl from various URL patterns
+                    patterns = [
+                        r'surl=([A-Za-z0-9_-]+)',
+                        r'/sharing/link\?surl=([A-Za-z0-9_-]+)',
+                        r'/share/link\?surl=([A-Za-z0-9_-]+)',
+                        r'/s/1([A-Za-z0-9_-]+)',  # Handle 1024tera format
+                    ]
+                    
+                    for pattern in patterns:
+                        match = re.search(pattern, final_url)
+                        if match:
+                            expanded_surl = match.group(1)
+                            break
+                    
+                    # If we got a valid response, break
+                    if response.status_code == 200:
+                        break
+                        
+                except Exception as e:
+                    continue
             
-            if api_response.status_code != 200:
-                raise HTTPException(status_code=api_response.status_code, detail="Failed to fetch TeraBox data")
+            # Now call the API with the extracted surl
+            api_endpoints = [
+                f"https://www.terabox.com/share/list?shorturl={expanded_surl}&root=1",
+                f"https://terabox.com/share/list?shorturl={expanded_surl}&root=1",
+                f"https://www.terabox.com/api/share/list?shorturl={expanded_surl}&root=1",
+            ]
             
-            data = api_response.json()
+            api_data = None
+            last_error = None
             
-            if data.get("errno") != 0:
-                raise HTTPException(status_code=400, detail=f"TeraBox API Error: {data.get('errmsg', 'Unknown error')}")
+            for api_url in api_endpoints:
+                try:
+                    api_response = await client.get(api_url, headers=headers, timeout=15)
+                    
+                    if api_response.status_code == 200:
+                        data = api_response.json()
+                        
+                        # Check if we got valid data
+                        if data.get("errno") == 0:
+                            api_data = data
+                            break
+                        else:
+                            last_error = data.get('errmsg', 'Unknown error')
+                            
+                except Exception as e:
+                    last_error = str(e)
+                    continue
             
-            return data
+            if not api_data:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Failed to fetch TeraBox data: {last_error or 'All endpoints failed'}"
+                )
+            
+            return api_data
             
         except httpx.RequestError as e:
             raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
@@ -115,14 +167,51 @@ async def extract_video(url: str):
     if not file_list:
         raise HTTPException(status_code=404, detail="No files found in this share link")
     
-    # Extract required parameters from response
-    uk = data.get("uk")
-    shareid = data.get("shareid")
+    # Extract required parameters from response - try multiple locations
+    uk = data.get("uk") or data.get("share_uk") or data.get("user_id")
+    shareid = data.get("shareid") or data.get("share_id") or data.get("shareId")
+    
+    # If still not found, try to extract from the first file
+    if not uk and file_list:
+        uk = file_list[0].get("uk") or file_list[0].get("owner_id")
+    
+    if not shareid and file_list:
+        shareid = file_list[0].get("shareid") or file_list[0].get("share_id")
+    
+    # Last resort: try to get from URL or use surl
+    if not shareid:
+        shareid = data.get("share_link_id") or surl
     
     if not uk or not shareid:
-        raise HTTPException(status_code=500, detail="Failed to extract required parameters (uk, shareid)")
+        # Return files without stream URLs if we can't generate them
+        results = []
+        for file in file_list:
+            filename = file.get("server_filename")
+            size = file.get("size", 0)
+            category = file.get("category")
+            download_url = file.get("dlink", "")
+            
+            results.append({
+                "name": filename,
+                "filename": filename,
+                "size": size,
+                "size_formatted": format_size(size),
+                "type": "video" if category == "1" else "file",
+                "stream_url": download_url,  # Use dlink as fallback
+                "download_url": download_url,
+                "fs_id": file.get("fs_id"),
+                "thumbnail": file.get("thumbs", {}).get("url3") if "thumbs" in file else None
+            })
+        
+        return {
+            "status": "success",
+            "total_files": len(results),
+            "data": results,
+            "files": results,
+            "warning": "Could not generate stream URLs, using direct links"
+        }
     
-    # Process files
+    # Process files with proper stream URLs
     results = []
     for file in file_list:
         fs_id = file.get("fs_id")
@@ -140,7 +229,7 @@ async def extract_video(url: str):
         download_url = file.get("dlink", stream_url)
         
         results.append({
-            "name": filename,  # Changed from "filename" to "name" for frontend compatibility
+            "name": filename,
             "filename": filename,
             "size": size,
             "size_formatted": format_size(size),
@@ -154,8 +243,8 @@ async def extract_video(url: str):
     return {
         "status": "success",
         "total_files": len(results),
-        "data": results,  # Changed from "files" to "data" for frontend compatibility
-        "files": results  # Keep both for backward compatibility
+        "data": results,
+        "files": results
     }
 
 def format_size(bytes_size: int) -> str:

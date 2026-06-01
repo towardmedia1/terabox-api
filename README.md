@@ -1,235 +1,110 @@
-# 🚀 Terabox Downloader API - Cookie-Free Version
+# 🎬 TeraBox Video Player & Downloader
 
-**Claude Sonnet 4.5 Powered** - No Manual Cookie Updates Required!
+A seamless, cookie-less TeraBox video streaming and download system built with FastAPI and modern frontend technologies.
 
 ## ✨ Features
 
-- ✅ **100% Cookie-Free** - No manual cookie updates needed
-- ✅ **Automatic Token Generation** - Dynamic cookie rotation
-- ✅ **Multiple Bypass Methods** - Fallback mechanisms for reliability
-- ✅ **Fast & Reliable** - Production-ready API
-- ✅ **Easy to Deploy** - Works on Render, Heroku, Railway, etc.
+- ✅ **Cookie-less Technology** - No manual cookie management required
+- ✅ **Direct Streaming** - Extract and play videos instantly
+- ✅ **One-Click Download** - Download files directly to your device
+- ✅ **Premium Dark UI** - Beautiful, responsive interface
+- ✅ **Real-time Extraction** - Fetches fs_id, uk, and shareid dynamically
+- ✅ **CORS Enabled** - Works from any domain
 
-## 🎯 How It Works
+## 🚀 Quick Start
 
-This API uses multiple advanced techniques to bypass Terabox authentication:
-
-1. **Dynamic Cookie Generation** - Generates valid cookies automatically
-2. **Cookie Pool Rotation** - Rotates through multiple cookies
-3. **Public Link Detection** - Accesses public links without auth
-4. **Multiple API Endpoints** - Tries different Terabox servers
-5. **Proxy API Fallback** - Uses third-party APIs as backup
-
-## 🔧 Installation
-
-### Local Setup
+### Local Development
 
 ```bash
-# Clone repository
-git clone <your-repo-url>
-cd terbox-api
-
 # Install dependencies
 pip install -r requirements.txt
 
-# Run API server
+# Run server
 python -m uvicorn api_server:app --reload --port 8000
 
-# In another terminal, run frontend server
-python serve_frontend.py
+# Open browser
+http://localhost:8000
 ```
 
-**Access:**
-- API: `http://localhost:8000`
-- Frontend: `http://localhost:3000/index.html`
-- API Docs: `http://localhost:8000/docs`
+### Deploy to Render/Heroku
 
-### Deploy to Render
+**Build Command:**
+```bash
+pip install -r requirements.txt
+```
 
-1. Push code to GitHub
-2. Create new Web Service on Render
-3. Connect your repository
-4. Use these settings:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn api_server:app --host 0.0.0.0 --port $PORT`
-   - **Environment:** Python 3
-
-5. After deployment, update `index.html`:
-   - Replace `https://onrender.com` with your actual Render URL
-   - Example: `https://your-app-name.onrender.com`
-
-6. Deploy frontend:
-   - Option 1: Host `index.html` on GitHub Pages
-   - Option 2: Include in same Render deployment (add static file serving)
-   - Option 3: Use Netlify/Vercel for frontend only
+**Start Command:**
+```bash
+uvicorn api_server:app --host 0.0.0.0 --port $PORT
+```
 
 ## 📡 API Endpoints
 
-### 1. Root Endpoint (Info)
-```
-GET /
-```
+### GET /
+Serves the frontend interface
 
-**Response:**
-```json
-{
-  "status": "online",
-  "version": "2.0.0",
-  "message": "Terabox Downloader API - Cookie-Free Version"
-}
-```
+### GET /api/extract?url={terabox_url}
+Extract video streaming and download links
 
-### 2. Fetch Files (GET Method)
-```
-GET /fetch?url=<terabox_url>
-```
-
-**Example:**
-```
-GET /fetch?url=https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA
-```
+**Parameters:**
+- `url` - TeraBox share URL
 
 **Response:**
 ```json
 {
   "status": "success",
-  "message": "Files extracted successfully",
   "total_files": 1,
-  "share_id": "1OePBz6N_MWXzxw86nbpErA",
-  "authentication": "cookie-free",
-  "data": [
+  "files": [
     {
-      "name": "video.mp4",
-      "size_bytes": 123456789,
+      "filename": "video.mp4",
+      "size": 123456789,
       "size_formatted": "117.74 MB",
       "type": "video",
-      "thumbnail": "https://...",
+      "stream_url": "https://terabox.com/share/streaming?...",
       "download_url": "https://terabox.com/...",
-      "play_url": "https://terabox.com/..."
+      "fs_id": "123456",
+      "thumbnail": "https://..."
     }
   ]
 }
 ```
 
-### 3. Fetch Files (POST Method)
-```
-POST /api/v1/fetch
-Content-Type: application/json
-
+### POST /api/extract
+Same as GET but accepts JSON body:
+```json
 {
-  "url": "https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA"
+  "url": "https://terabox.com/s/1xxxxx"
 }
 ```
 
-### 4. Health Check
-```
-GET /health
-```
+### GET /health
+Health check endpoint
 
-### 5. Interactive Docs
-```
-GET /docs
-```
+## 🎯 How It Works
 
-## 🧪 Testing
+1. **Extract Share ID** - Parses TeraBox URL to get surl
+2. **Fetch Public Data** - Calls TeraBox public API without cookies
+3. **Extract Parameters** - Gets fs_id, uk, and shareid from response
+4. **Generate Stream URL** - Creates direct playback link
+5. **Serve to Frontend** - Returns streaming and download URLs
 
-### Using Browser
-```
-http://localhost:8000/fetch?url=https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA
-```
+## 🔧 Technology Stack
 
-### Using cURL
-```bash
-curl "http://localhost:8000/fetch?url=https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA"
-```
+- **Backend:** FastAPI (Python)
+- **Frontend:** HTML5, Tailwind CSS, JavaScript
+- **HTTP Client:** httpx (async)
+- **Icons:** Font Awesome 6
 
-### Using Python
-```python
-import requests
+## 🌐 Supported URLs
 
-url = "http://localhost:8000/fetch"
-params = {"url": "https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA"}
+- `https://terabox.com/s/xxxxx`
+- `https://1024tera.com/s/xxxxx`
+- `https://terabox.com/sharing/link?surl=xxxxx`
 
-response = requests.get(url, params=params)
-data = response.json()
-
-print(f"Total Files: {data['total_files']}")
-for file in data['data']:
-    print(f"Name: {file['name']}")
-    print(f"Size: {file['size_formatted']}")
-    print(f"Download: {file['download_url']}")
-```
-
-## 🔐 Security Features
-
-- No hardcoded sensitive cookies
-- Dynamic token generation
-- Rate limiting ready
-- CORS enabled
-- Error handling
-
-## 🌐 Supported Terabox Domains
-
-- terabox.com
-- 1024tera.com
-- 4funbox.com
-- mirrobox.com
-- nephobox.com
-
-## 📝 Environment Variables (Optional)
-
-Create `.env` file for custom configuration:
-
-```env
-# Optional: Add your own cookie pool
-COOKIE_POOL=cookie1,cookie2,cookie3
-
-# Optional: API timeout
-API_TIMEOUT=30
-```
-
-## 🚀 Deployment Platforms
-
-This API works on:
-- ✅ Render
-- ✅ Railway
-- ✅ Heroku
-- ✅ Vercel (with Python runtime)
-- ✅ AWS Lambda
-- ✅ Google Cloud Run
-- ✅ DigitalOcean App Platform
-
-## 🛠️ Tech Stack
-
-- **FastAPI** - Modern Python web framework
-- **httpx** - Async HTTP client
-- **Uvicorn** - ASGI server
-- **Pydantic** - Data validation
-
-## 📊 Performance
-
-- Response Time: < 2 seconds
-- Success Rate: 95%+
-- Uptime: 99.9%
-
-## 🤝 Contributing
-
-Contributions welcome! Please open an issue or PR.
-
-## 📄 License
+## 📝 License
 
 MIT License - Free to use and modify
 
-## 👨‍💻 Author
+## ⚠️ Disclaimer
 
-**Claude Sonnet 4.5**
-
-## 🙏 Acknowledgments
-
-- FastAPI team for the amazing framework
-- Terabox for the service
-- Open source community
-
----
-
-**Note:** This tool is for educational purposes. Please respect Terabox's terms of service.
+This tool is for educational purposes. Please respect TeraBox's terms of service and copyright laws.
