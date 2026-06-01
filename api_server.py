@@ -1,302 +1,177 @@
 import re
-import time
-import hashlib
+import httpx
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-import httpx
-from urllib.parse import quote, unquote
 import os
 
-# Import bypass module
-try:
-    from terabox_bypass import bypass
-    BYPASS_AVAILABLE = True
-except:
-    BYPASS_AVAILABLE = False
-
 app = FastAPI(
-    title="Terabox Downloader API - Cookie-Free",
-    description="Claude Sonnet Powered - No Manual Cookie Updates Required",
-    version="2.0.0"
+    title="TeraBox Video Player & Downloader",
+    description="Cookie-less TeraBox streaming and download system",
+    version="3.0.0"
 )
 
-# Enable CORS for frontend - Allow all origins, credentials, methods, and headers
+# Configure CORS - Allow all origins, methods, and headers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
-    allow_credentials=True,  # Allow credentials
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-class TeraboxRequest(BaseModel):
+class TeraBoxRequest(BaseModel):
     url: str
 
-# Multiple fallback cookies for rotation
-COOKIE_POOL = [
-    "Y-FwX3KteHuidJr6Wm0UxNUyjD00CEjLYCtaZuLr",
-    "ndus_12345678901234567890123456789012",
-    "ndus_abcdefghijklmnopqrstuvwxyz123456"
-]
+def extract_surl(url: str) -> Optional[str]:
+    """Extract share ID from TeraBox URL"""
+    patterns = [
+        r'/s/([A-Za-z0-9_-]+)',
+        r'surl=([A-Za-z0-9_-]+)',
+        r'shorturl=([A-Za-z0-9_-]+)'
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    return None
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Referer": "https://www.terabox.com/",
-    "Origin": "https://www.terabox.com",
-    "Connection": "keep-alive",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin"
-}
+async def get_terabox_data(surl: str) -> dict:
+    """Fetch TeraBox data from public endpoint without cookies"""
+    async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+        # Expand short link first
+        short_url = f"https://terabox.com/s/{surl}"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://www.terabox.com/",
+        }
+        
+        try:
+            # Get the expanded URL
+            response = await client.get(short_url, headers=headers)
+            final_url = str(response.url)
+            
+            # Extract surl from final URL if needed
+            surl_match = re.search(r'surl=([^&]+)', final_url)
+            if surl_match:
+                surl = surl_match.group(1)
+            
+            # Call public API endpoint
+            api_url = f"https://terabox.com/share/list?shorturl={surl}&root=1"
+            api_response = await client.get(api_url, headers=headers)
+            
+            if api_response.status_code != 200:
+                raise HTTPException(status_code=api_response.status_code, detail="Failed to fetch TeraBox data")
+            
+            data = api_response.json()
+            
+            if data.get("errno") != 0:
+                raise HTTPException(status_code=400, detail=f"TeraBox API Error: {data.get('errmsg', 'Unknown error')}")
+            
+            return data
+            
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
 
-def format_size(bytes_size: Optional[int]) -> str:
+def generate_stream_url(fs_id: str, uk: str, shareid: str) -> str:
+    """Generate direct bypass playback stream URL"""
+    return f"https://terabox.com/share/streaming?shareid={shareid}&uk={uk}&fs_id={fs_id}"
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    """Serve the frontend HTML at root"""
+    if os.path.exists("index.html"):
+        with open("index.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Frontend not found</h1>")
+
+@app.get("/api/extract")
+async def extract_video_get(url: str = Query(..., description="TeraBox share URL")):
+    """GET endpoint - Extract video streaming and download links from TeraBox URL"""
+    return await extract_video(url)
+
+@app.post("/api/v1/fetch")
+async def extract_video_post(request: TeraBoxRequest):
+    """POST endpoint - Extract video streaming and download links from TeraBox URL"""
+    return await extract_video(request.url)
+
+async def extract_video(url: str):
+    """Extract video streaming and download links from TeraBox URL"""
+    
+    # Extract surl
+    surl = extract_surl(url)
+    if not surl:
+        raise HTTPException(status_code=400, detail="Invalid TeraBox URL. Could not extract share ID.")
+    
+    # Get TeraBox data
+    data = await get_terabox_data(surl)
+    
+    # Extract file list
+    file_list = data.get("list", [])
+    if not file_list:
+        raise HTTPException(status_code=404, detail="No files found in this share link")
+    
+    # Extract required parameters from response
+    uk = data.get("uk")
+    shareid = data.get("shareid")
+    
+    if not uk or not shareid:
+        raise HTTPException(status_code=500, detail="Failed to extract required parameters (uk, shareid)")
+    
+    # Process files
+    results = []
+    for file in file_list:
+        fs_id = file.get("fs_id")
+        filename = file.get("server_filename")
+        size = file.get("size", 0)
+        category = file.get("category")
+        
+        if not fs_id:
+            continue
+        
+        # Generate stream URL
+        stream_url = generate_stream_url(str(fs_id), str(uk), str(shareid))
+        
+        # Get direct download link if available
+        download_url = file.get("dlink", stream_url)
+        
+        results.append({
+            "name": filename,  # Changed from "filename" to "name" for frontend compatibility
+            "filename": filename,
+            "size": size,
+            "size_formatted": format_size(size),
+            "type": "video" if category == "1" else "file",
+            "stream_url": stream_url,
+            "download_url": download_url,
+            "fs_id": fs_id,
+            "thumbnail": file.get("thumbs", {}).get("url3") if "thumbs" in file else None
+        })
+    
+    return {
+        "status": "success",
+        "total_files": len(results),
+        "data": results,  # Changed from "files" to "data" for frontend compatibility
+        "files": results  # Keep both for backward compatibility
+    }
+
+def format_size(bytes_size: int) -> str:
+    """Format bytes to human readable size"""
     if not bytes_size:
-        return "0 Bytes"
-    for unit in ['Bytes', 'KB', 'MB', 'GB', 'TB']:
+        return "0 B"
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if bytes_size < 1024.0:
             return f"{bytes_size:.2f} {unit}"
         bytes_size /= 1024.0
     return f"{bytes_size:.2f} PB"
 
-def generate_dynamic_cookie() -> str:
-    """
-    Dynamic cookie generation based on timestamp
-    Terabox cookies follow a pattern, we generate similar ones
-    """
-    timestamp = str(int(time.time()))
-    random_string = hashlib.md5(timestamp.encode()).hexdigest()[:32]
-    return f"ndus_{random_string}"
-
-def extract_surl(url: str) -> Optional[str]:
-    """
-    Multiple methods to extract share ID from various Terabox URL formats
-    """
-    # Method 1: Direct /s/ pattern
-    match = re.search(r'/s/([A-Za-z0-9_-]+)', url)
-    if match:
-        return match.group(1)
-    
-    # Method 2: surl parameter
-    match = re.search(r'surl=([A-Za-z0-9_-]+)', url)
-    if match:
-        return match.group(1)
-    
-    # Method 3: shorturl parameter
-    match = re.search(r'shorturl=([A-Za-z0-9_-]+)', url)
-    if match:
-        return match.group(1)
-    
-    return None
-
-async def fetch_with_cookie_rotation(client: httpx.AsyncClient, api_url: str, cookies_list: list) -> dict:
-    """
-    Try multiple cookies from pool until one works
-    """
-    last_error = None
-    
-    for cookie in cookies_list:
-        try:
-            headers = HEADERS.copy()
-            headers["Cookie"] = f"ndus={cookie}; browserid={hashlib.md5(str(time.time()).encode()).hexdigest()}"
-            
-            response = await client.get(api_url, headers=headers, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("errno") == 0:
-                    return data
-                elif data.get("errno") == -9:
-                    # Cookie expired, try next one
-                    continue
-                else:
-                    last_error = data.get("errmsg", "Unknown error")
-        except Exception as e:
-            last_error = str(e)
-            continue
-    
-    # If all cookies failed, try without cookie (public links)
-    try:
-        headers = HEADERS.copy()
-        response = await client.get(api_url, headers=headers, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("errno") == 0:
-                return data
-    except:
-        pass
-    
-    raise HTTPException(status_code=401, detail=f"All authentication methods failed: {last_error}")
-
-async def try_alternative_endpoints(client: httpx.AsyncClient, surl: str) -> dict:
-    """
-    Try multiple Terabox API endpoints with different formats
-    """
-    # First try bypass module if available
-    if BYPASS_AVAILABLE:
-        try:
-            result = await bypass.get_download_link(surl)
-            if result and result.get("errno") == 0:
-                return result
-        except Exception as e:
-            print(f"Bypass module failed: {e}")
-    
-    endpoints = [
-        # Official API endpoints
-        f"https://www.terabox.com/share/list?shorturl={surl}&root=1",
-        f"https://terabox.com/share/list?shorturl={surl}&root=1",
-        f"https://www.terabox.com/api/share/list?shorturl={surl}&root=1",
-        
-        # Alternative formats
-        f"https://www.1024tera.com/share/list?shorturl={surl}&root=1",
-        f"https://www.terabox.app/share/list?shorturl={surl}&root=1",
-        
-        # With additional parameters
-        f"https://www.terabox.com/share/list?app_id=250528&shorturl={surl}&root=1",
-    ]
-    
-    # Add dynamic cookie to pool
-    cookies_to_try = COOKIE_POOL + [generate_dynamic_cookie()]
-    
-    for endpoint in endpoints:
-        try:
-            data = await fetch_with_cookie_rotation(client, endpoint, cookies_to_try)
-            return data
-        except:
-            continue
-    
-    raise HTTPException(status_code=503, detail="All API endpoints failed. Terabox might be blocking requests.")
-
-@app.get("/")
-async def root():
-    """
-    Serve the frontend HTML page
-    """
-    # Check if index.html exists in the same directory
-    if os.path.exists("index.html"):
-        return FileResponse("index.html", media_type="text/html")
-    
-    # Fallback to API info if index.html not found
-    return {
-        "status": "online",
-        "version": "2.0.0",
-        "message": "Terabox Downloader API - Cookie-Free Version",
-        "features": [
-            "Automatic cookie rotation",
-            "Dynamic token generation",
-            "Multiple API endpoint fallback",
-            "No manual cookie updates needed"
-        ],
-        "endpoints": {
-            "GET /fetch": "Query parameter: url (Terabox share link)",
-            "POST /api/v1/fetch": "Body: {url: 'terabox_link'}",
-            "GET /docs": "Interactive API documentation"
-        },
-        "example": "/fetch?url=https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA",
-        "author": "Claude Sonnet 4.5"
-    }
-
-@app.get("/fetch")
-async def fetch_terabox_links_get(url: str = Query(..., description="Terabox share URL")):
-    """
-    GET endpoint - Cookie-free Terabox link processor
-    Example: /fetch?url=https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA
-    """
-    input_url = url.strip()
-    
-    if not input_url:
-        raise HTTPException(status_code=400, detail="URL parameter cannot be empty")
-    
-    if not any(domain in input_url.lower() for domain in ["terabox", "1024tera", "4funbox", "mirrobox", "nephobox"]):
-        raise HTTPException(status_code=400, detail="Please provide a valid Terabox share link")
-
-    async with httpx.AsyncClient(follow_redirects=True, headers=HEADERS, timeout=30.0) as client:
-        try:
-            # Extract share ID
-            surl = extract_surl(input_url)
-            
-            # If direct extraction failed, try fetching the URL first
-            if not surl:
-                try:
-                    response = await client.get(input_url, timeout=10)
-                    final_url = str(response.url)
-                    surl = extract_surl(final_url)
-                except:
-                    pass
-            
-            if not surl:
-                raise HTTPException(status_code=400, detail="Could not extract share ID from URL")
-
-            # Try alternative endpoints with cookie rotation
-            data = await try_alternative_endpoints(client, surl)
-            
-            file_list = data.get("list", [])
-            if not file_list:
-                raise HTTPException(status_code=404, detail="No files found in this share link")
-            
-            # Format response
-            formatted_files = []
-            for file in file_list:
-                size_bytes = int(file.get("size", 0))
-                
-                # Get download link
-                dlink = file.get("dlink", "")
-                
-                formatted_files.append({
-                    "name": file.get("server_filename"),
-                    "size_bytes": size_bytes,
-                    "size_formatted": format_size(size_bytes),
-                    "type": "video" if file.get("category") == "1" else "file",
-                    "thumbnail": file.get("thumbs", {}).get("url3") if "thumbs" in file else None,
-                    "download_url": dlink,
-                    "play_url": dlink,
-                    "fs_id": file.get("fs_id"),
-                    "path": file.get("path"),
-                    "isdir": file.get("isdir", 0) == 1
-                })
-                
-            return {
-                "status": "success",
-                "message": "Files extracted successfully",
-                "author": "Claude Sonnet 4.5",
-                "total_files": len(formatted_files),
-                "share_id": surl,
-                "authentication": "cookie-free",
-                "data": formatted_files
-            }
-
-        except HTTPException:
-            raise
-        except httpx.ConnectTimeout:
-            raise HTTPException(status_code=504, detail="Connection timeout - Terabox server not responding")
-        except httpx.RequestError as e:
-            raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-@app.post("/api/v1/fetch")
-async def fetch_terabox_links_post(payload: TeraboxRequest):
-    """
-    POST endpoint - Cookie-free Terabox link processor
-    Body: {"url": "https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA"}
-    """
-    # Reuse GET endpoint logic
-    return await fetch_terabox_links_get(url=payload.url)
-
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring"""
-    return {
-        "status": "healthy",
-        "timestamp": int(time.time()),
-        "version": "2.0.0"
-    }
+    """Health check endpoint"""
+    return {"status": "healthy", "version": "3.0.0"}
 
 if __name__ == "__main__":
     import uvicorn
