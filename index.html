@@ -3,102 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TeraBox Player - Stream & Download</title>
+    <title>iTeraPlay - Premium TeraBox Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        * { font-family: 'Poppins', sans-serif; }
-        body { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); min-height: 100vh; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .glow { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5); }
-        .spinner { border: 3px solid rgba(255, 255, 255, 0.3); border-top: 3px solid #8b5cf6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transition: all 0.3s; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4); }
-        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(56, 239, 125, 0.4); }
-        .video-card { transition: all 0.3s; }
-        .video-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        * { 
+            font-family: 'Poppins', sans-serif; 
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body { 
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .glass { 
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+        }
+        .glow { 
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.3); 
+        }
+        .spinner { 
+            border: 4px solid rgba(255, 255, 255, 0.2); 
+            border-top: 4px solid #8b5cf6; 
+            border-radius: 50%; 
+            width: 50px; 
+            height: 50px; 
+            animation: spin 0.8s linear infinite; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        .fade-in { 
+            animation: fadeIn 0.6s ease-in; 
+        }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(30px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5); 
+        }
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+        .btn-success { 
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
+            transition: all 0.3s ease;
+        }
+        .btn-success:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 15px 35px rgba(56, 239, 125, 0.5); 
+        }
+        .btn-play {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-play:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(245, 87, 108, 0.5);
+        }
+        .video-card { 
+            transition: all 0.4s ease; 
+        }
+        .video-card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4); 
+        }
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+        }
     </style>
 </head>
 <body class="text-white">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
         <!-- Header -->
-        <header class="text-center mb-12">
-            <div class="flex items-center justify-center mb-4">
-                <i class="fas fa-play-circle text-6xl text-purple-400"></i>
+        <header class="text-center mb-12 fade-in">
+            <div class="flex items-center justify-center mb-6">
+                <div class="relative">
+                    <i class="fas fa-play-circle text-7xl text-purple-400 pulse"></i>
+                    <div class="absolute inset-0 blur-xl bg-purple-500 opacity-50"></div>
+                </div>
             </div>
-            <h1 class="text-5xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                TeraBox Player
+            <h1 class="text-6xl font-extrabold mb-3 gradient-text">
+                iTeraPlay
             </h1>
-            <p class="text-gray-300 text-lg">Stream & Download Videos Instantly</p>
+            <p class="text-gray-300 text-xl font-light">Premium TeraBox Streaming Experience</p>
+            <div class="flex items-center justify-center gap-4 mt-4 text-sm text-gray-400">
+                <span><i class="fas fa-shield-alt mr-1"></i>Cookie-Free</span>
+                <span><i class="fas fa-bolt mr-1"></i>Instant Streaming</span>
+                <span><i class="fas fa-download mr-1"></i>Direct Downloads</span>
+            </div>
         </header>
 
         <!-- Input Section -->
-        <div class="glass rounded-2xl p-8 mb-8 glow">
+        <div class="glass rounded-3xl p-8 mb-10 glow fade-in">
             <div class="mb-6">
-                <label class="block text-sm font-semibold mb-3 text-purple-300">
-                    <i class="fas fa-link mr-2"></i>Paste TeraBox Link
+                <label class="block text-sm font-semibold mb-3 text-purple-300 uppercase tracking-wide">
+                    <i class="fas fa-link mr-2"></i>TeraBox Share Link
                 </label>
                 <input 
                     type="text" 
                     id="teraboxUrl" 
                     placeholder="https://terabox.com/s/1xxxxx or https://1024tera.com/s/1xxxxx"
-                    class="w-full px-6 py-4 rounded-xl bg-gray-900/50 border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none text-white placeholder-gray-500 transition-all"
+                    class="w-full px-6 py-5 rounded-2xl bg-gray-900/60 border-2 border-purple-500/30 focus:border-purple-500 text-white placeholder-gray-500 transition-all text-lg"
                 >
             </div>
             
             <button 
                 onclick="extractVideo()"
-                class="btn-primary w-full py-4 px-8 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-3"
+                id="extractBtn"
+                class="btn-primary w-full py-5 px-8 rounded-2xl font-bold text-xl text-white flex items-center justify-center gap-3 shadow-2xl"
             >
                 <i class="fas fa-magic"></i>
-                <span>Extract Video</span>
+                <span>Extract Videos</span>
             </button>
         </div>
 
         <!-- Loading State -->
-        <div id="loading" class="hidden text-center py-12">
-            <div class="spinner mx-auto mb-4"></div>
-            <p class="text-purple-300 text-lg">Extracting video links...</p>
+        <div id="loading" class="hidden text-center py-16 fade-in">
+            <div class="spinner mx-auto mb-6"></div>
+            <p class="text-purple-300 text-xl font-medium">Extracting video links...</p>
+            <p class="text-gray-400 text-sm mt-2">This may take a few seconds</p>
         </div>
 
         <!-- Error State -->
-        <div id="error" class="hidden glass rounded-xl p-6 mb-8 border-2 border-red-500/50">
+        <div id="error" class="hidden glass rounded-2xl p-6 mb-8 border-2 border-red-500/50 fade-in">
             <div class="flex items-start gap-4">
-                <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
-                <div>
-                    <h3 class="font-bold text-lg mb-2 text-red-400">Error</h3>
-                    <p id="errorMessage" class="text-gray-300"></p>
+                <i class="fas fa-exclamation-triangle text-red-400 text-3xl"></i>
+                <div class="flex-1">
+                    <h3 class="font-bold text-xl mb-2 text-red-400">Error Occurred</h3>
+                    <p id="errorMessage" class="text-gray-300 text-base"></p>
+                    <button onclick="hideError()" class="mt-4 text-sm text-purple-300 hover:text-purple-200 underline">
+                        Dismiss
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Results Section -->
         <div id="results" class="hidden fade-in">
-            <div class="glass rounded-2xl p-8">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-purple-300">
-                        <i class="fas fa-video mr-2"></i>Available Videos
+            <div class="glass rounded-3xl p-8 shadow-2xl">
+                <div class="flex items-center justify-between mb-8 pb-4 border-b border-purple-500/30">
+                    <h2 class="text-3xl font-bold text-purple-300">
+                        <i class="fas fa-video mr-3"></i>Available Videos
                     </h2>
-                    <span id="fileCount" class="glass px-4 py-2 rounded-full text-sm font-semibold"></span>
+                    <span id="fileCount" class="glass px-6 py-3 rounded-full text-base font-bold bg-purple-500/20"></span>
                 </div>
                 
-                <div id="videoList" class="space-y-4">
+                <div id="videoList" class="space-y-6">
                     <!-- Videos will be inserted here -->
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
-        <footer class="text-center mt-12 text-gray-400">
-            <p class="mb-2">
-                <i class="fas fa-code mr-2"></i>Built with FastAPI & Tailwind CSS
-            </p>
-            <p class="text-sm">Cookie-less streaming technology</p>
+        <footer class="text-center mt-16 text-gray-400 fade-in">
+            <div class="glass rounded-2xl p-6 inline-block">
+                <p class="mb-2 text-base">
+                    <i class="fas fa-code mr-2"></i>Powered by FastAPI & Tailwind CSS
+                </p>
+                <p class="text-sm">Advanced cookie-less streaming technology</p>
+                <div class="mt-3 flex items-center justify-center gap-4 text-xs">
+                    <span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>Secure</span>
+                    <span class="text-blue-400"><i class="fas fa-rocket mr-1"></i>Fast</span>
+                    <span class="text-purple-400"><i class="fas fa-star mr-1"></i>Premium</span>
+                </div>
+            </div>
         </footer>
     </div>
 
@@ -107,37 +204,62 @@
 
         async function extractVideo() {
             const url = document.getElementById('teraboxUrl').value.trim();
+            const extractBtn = document.getElementById('extractBtn');
             
             if (!url) {
-                showError('Please enter a TeraBox URL');
+                showError('Please enter a valid TeraBox URL');
                 return;
             }
 
-            // Hide previous results
+            // Validate URL format
+            if (!url.includes('terabox.com') && !url.includes('1024tera.com')) {
+                showError('Invalid URL. Please enter a TeraBox or 1024tera link.');
+                return;
+            }
+
+            // Hide previous results and errors
             document.getElementById('results').classList.add('hidden');
             document.getElementById('error').classList.add('hidden');
             document.getElementById('loading').classList.remove('hidden');
+            extractBtn.disabled = true;
+            extractBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
 
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ url: url })
                 });
 
-                const data = await response.json();
+                // Always try to parse JSON
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    throw new Error('Server returned invalid response. Please try again.');
+                }
 
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Failed to extract video');
+                // Check if response indicates error
+                if (data.status === 'error' || data.detail) {
+                    throw new Error(data.detail || data.message || 'Failed to extract video');
+                }
+
+                // Check if we have files
+                if (!data.data || data.data.length === 0) {
+                    throw new Error('No files found in this share link. The link may be invalid or expired.');
                 }
 
                 displayResults(data);
             } catch (error) {
-                showError(error.message);
+                console.error('Error:', error);
+                showError(error.message || 'An unexpected error occurred. Please check the URL and try again.');
             } finally {
                 document.getElementById('loading').classList.add('hidden');
+                extractBtn.disabled = false;
+                extractBtn.innerHTML = '<i class="fas fa-magic"></i><span>Extract Videos</span>';
             }
         }
 
@@ -145,50 +267,65 @@
             const videoList = document.getElementById('videoList');
             const fileCount = document.getElementById('fileCount');
             
-            fileCount.textContent = `${data.total_files} File${data.total_files > 1 ? 's' : ''}`;
+            const totalFiles = data.total_files || 0;
+            fileCount.textContent = `${totalFiles} File${totalFiles !== 1 ? 's' : ''}`;
             videoList.innerHTML = '';
 
             const files = data.data || data.files || [];
 
+            if (files.length === 0) {
+                showError('No files found in the response');
+                return;
+            }
+
             files.forEach((file, index) => {
                 const card = document.createElement('div');
-                card.className = 'video-card glass rounded-xl p-6';
+                card.className = 'video-card glass rounded-2xl p-6 hover:bg-white/10';
                 
-                const fileName = file.name || file.filename || 'Unknown';
+                const fileName = file.name || file.filename || 'Unknown File';
                 const downloadUrl = file.download_url || file.stream_url || '#';
                 const streamUrl = file.stream_url || file.download_url || '#';
+                const sizeFormatted = file.size_formatted || 'Unknown size';
+                const fileType = file.type || 'file';
                 
                 card.innerHTML = `
-                    <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <div class="flex flex-col lg:flex-row items-start lg:items-center gap-6">
                         <div class="flex-shrink-0">
                             ${file.thumbnail ? 
-                                `<img src="${file.thumbnail}" alt="${fileName}" class="w-32 h-20 object-cover rounded-lg">` :
-                                `<div class="w-32 h-20 bg-purple-900/30 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-file-video text-3xl text-purple-400"></i>
+                                `<img src="${file.thumbnail}" alt="${fileName}" class="w-40 h-24 object-cover rounded-xl shadow-lg">` :
+                                `<div class="w-40 h-24 bg-gradient-to-br from-purple-900/40 to-pink-900/40 rounded-xl flex items-center justify-center shadow-lg">
+                                    <i class="fas fa-file-video text-4xl text-purple-300"></i>
                                 </div>`
                             }
                         </div>
                         
                         <div class="flex-1 min-w-0">
-                            <h3 class="font-bold text-lg mb-2 text-white truncate">${fileName}</h3>
-                            <div class="flex flex-wrap gap-3 text-sm text-gray-400">
-                                <span><i class="fas fa-hdd mr-1"></i>${file.size_formatted || 'Unknown size'}</span>
-                                <span><i class="fas fa-tag mr-1"></i>${file.type || 'file'}</span>
+                            <h3 class="font-bold text-xl mb-3 text-white break-words">${fileName}</h3>
+                            <div class="flex flex-wrap gap-4 text-sm text-gray-300">
+                                <span class="glass px-3 py-1 rounded-lg">
+                                    <i class="fas fa-hdd mr-2 text-purple-400"></i>${sizeFormatted}
+                                </span>
+                                <span class="glass px-3 py-1 rounded-lg">
+                                    <i class="fas fa-tag mr-2 text-pink-400"></i>${fileType}
+                                </span>
+                                ${file.fs_id ? `<span class="glass px-3 py-1 rounded-lg text-xs">
+                                    <i class="fas fa-fingerprint mr-1 text-blue-400"></i>ID: ${file.fs_id}
+                                </span>` : ''}
                             </div>
                         </div>
                         
-                        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                             <button 
-                                onclick="playVideo('${streamUrl}')"
-                                class="btn-primary px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                                onclick="playVideo('${streamUrl.replace(/'/g, "\\'")}', '${fileName.replace(/'/g, "\\'")}')"
+                                class="btn-play px-8 py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 whitespace-nowrap shadow-lg"
                             >
                                 <i class="fas fa-play"></i>
                                 <span>Play</span>
                             </button>
                             
                             <button 
-                                onclick="downloadVideo('${downloadUrl}', '${fileName}')"
-                                class="btn-success px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 whitespace-nowrap"
+                                onclick="downloadVideo('${downloadUrl.replace(/'/g, "\\'")}', '${fileName.replace(/'/g, "\\'")}')"
+                                class="btn-success px-8 py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 whitespace-nowrap shadow-lg"
                             >
                                 <i class="fas fa-download"></i>
                                 <span>Download</span>
@@ -200,18 +337,46 @@
                 videoList.appendChild(card);
             });
 
+            // Show warning if in fallback mode
+            if (data.warning) {
+                const warningDiv = document.createElement('div');
+                warningDiv.className = 'glass rounded-xl p-4 mt-4 border border-yellow-500/50';
+                warningDiv.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-exclamation-circle text-yellow-400 text-xl"></i>
+                        <p class="text-yellow-300 text-sm">${data.warning}</p>
+                    </div>
+                `;
+                videoList.appendChild(warningDiv);
+            }
+
             document.getElementById('results').classList.remove('hidden');
+            
+            // Scroll to results
+            setTimeout(() => {
+                document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
         }
 
-        function playVideo(url) {
+        function playVideo(url, filename) {
+            if (!url || url === '#') {
+                showError('Stream URL not available for this file');
+                return;
+            }
             window.open(url, '_blank');
         }
 
         function downloadVideo(url, filename) {
+            if (!url || url === '#') {
+                showError('Download URL not available for this file');
+                return;
+            }
+            
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
             a.target = '_blank';
+            a.rel = 'noopener noreferrer';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -220,9 +385,11 @@
         function showError(message) {
             document.getElementById('errorMessage').textContent = message;
             document.getElementById('error').classList.remove('hidden');
-            setTimeout(() => {
-                document.getElementById('error').classList.add('hidden');
-            }, 5000);
+            document.getElementById('error').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.add('hidden');
         }
 
         // Allow Enter key to submit
@@ -230,6 +397,24 @@
             if (e.key === 'Enter') {
                 extractVideo();
             }
+        });
+
+        // Auto-hide error after 8 seconds
+        let errorTimeout;
+        const errorObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.classList.contains('hidden') === false) {
+                    clearTimeout(errorTimeout);
+                    errorTimeout = setTimeout(() => {
+                        hideError();
+                    }, 8000);
+                }
+            });
+        });
+
+        errorObserver.observe(document.getElementById('error'), {
+            attributes: true,
+            attributeFilter: ['class']
         });
     </script>
 </body>
