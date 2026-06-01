@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terabox Downloader - Fast & Free</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass-effect { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .file-card { transition: all 0.3s ease; }
+        .file-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); }
+        .loading-spinner { border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 3px solid white; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .slide-in { animation: slideIn 0.5s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <header class="py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-cloud-download-alt text-white text-3xl"></i>
+                    <h1 class="text-white text-2xl font-bold">Terabox Downloader</h1>
+                </div>
+                <span class="glass-effect text-white px-4 py-2 rounded-full text-sm">
+                    <i class="fas fa-shield-alt mr-2"></i>Cookie-Free
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="text-center mb-12">
+            <h2 class="text-white text-4xl md:text-5xl font-bold mb-4">
+                Download Terabox Files
+                <span class="block text-2xl md:text-3xl mt-2 text-purple-200">Fast, Free & Easy</span>
+            </h2>
+            <p class="text-white text-lg opacity-90 max-w-2xl mx-auto">
+                Get direct download links for any Terabox shared file. No login required.
+            </p>
+        </div>
+
+        <div class="max-w-4xl mx-auto mb-12">
+            <div class="glass-effect rounded-2xl p-8 shadow-2xl">
+                <form id="downloadForm" class="space-y-6">
+                    <div>
+                        <label for="teraboxUrl" class="block text-white text-sm font-semibold mb-3">
+                            <i class="fas fa-link mr-2"></i>Paste Terabox Share Link
+                        </label>
+                        <input type="text" id="teraboxUrl" placeholder="https://1024tera.com/s/1OePBz6N_MWXzxw86nbpErA"
+                            class="w-full px-6 py-4 rounded-xl bg-white/90 border-2 border-transparent focus:border-purple-400 focus:outline-none text-gray-800 text-lg" required>
+                    </div>
+                    <button type="submit" id="submitBtn"
+                        class="w-full bg-white text-purple-700 font-bold py-4 px-8 rounded-xl hover:bg-purple-50 transition-all transform hover:scale-105 shadow-lg text-lg">
+                        <i class="fas fa-download mr-2"></i><span id="btnText">Get Download Links</span>
+                    </button>
+                </form>
+
+                <div id="loadingState" class="hidden text-center py-8">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-white text-lg">Processing your link...</p>
+                </div>
+
+                <div id="errorState" class="hidden mt-6 bg-red-500/20 border-2 border-red-400 rounded-xl p-6">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-exclamation-circle text-red-300 text-2xl"></i>
+                        <div>
+                            <h3 class="text-white font-bold text-lg mb-2">Error</h3>
+                            <p id="errorMessage" class="text-red-200"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsSection" class="hidden max-w-6xl mx-auto">
+            <div class="glass-effect rounded-2xl p-8 shadow-2xl slide-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-white text-2xl font-bold">
+                        <i class="fas fa-check-circle text-green-400 mr-2"></i>Files Found
+                    </h3>
+                    <span id="fileCount" class="glass-effect text-white px-4 py-2 rounded-full font-semibold"></span>
+                </div>
+                <div id="filesList" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto mt-16 grid md:grid-cols-3 gap-6">
+            <div class="glass-effect rounded-xl p-6 text-center">
+                <i class="fas fa-bolt text-yellow-300 text-4xl mb-4"></i>
+                <h4 class="text-white font-bold text-lg mb-2">Lightning Fast</h4>
+                <p class="text-purple-200 text-sm">Get download links in seconds</p>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center">
+                <i class="fas fa-lock-open text-green-300 text-4xl mb-4"></i>
+                <h4 class="text-white font-bold text-lg mb-2">No Login Required</h4>
+                <p class="text-purple-200 text-sm">100% cookie-free technology</p>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center">
+                <i class="fas fa-infinity text-blue-300 text-4xl mb-4"></i>
+                <h4 class="text-white font-bold text-lg mb-2">Unlimited Downloads</h4>
+                <p class="text-purple-200 text-sm">No restrictions or limits</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="py-8 mt-16">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-white opacity-75">Made with <i class="fas fa-heart text-red-400"></i> by Claude Sonnet 4.5</p>
+        </div>
+    </footer>
+
+    <script>
+        // Use relative URL since frontend is served from same domain as API
+        const API_URL = '/api/v1/fetch';
+        const form = document.getElementById('downloadForm');
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const resultsSection = document.getElementById('resultsSection');
+
+        function formatSize(bytes) {
+            if (!bytes) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'mp4': 'fa-file-video', 'mkv': 'fa-file-video', 'avi': 'fa-file-video',
+                'mp3': 'fa-file-audio', 'pdf': 'fa-file-pdf', 'zip': 'fa-file-archive',
+                'jpg': 'fa-file-image', 'png': 'fa-file-image'
+            };
+            return icons[ext] || 'fa-file';
+        }
+
+        function showError(message) {
+            errorState.classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+            setTimeout(() => errorState.classList.add('hidden'), 5000);
+        }
+
+        function displayResults(data) {
+            const filesList = document.getElementById('filesList');
+            document.getElementById('fileCount').textContent = `${data.total_files} File${data.total_files > 1 ? 's' : ''}`;
+            filesList.innerHTML = '';
+
+            data.data.forEach(file => {
+                const fileCard = document.createElement('div');
+                fileCard.className = 'file-card bg-white/95 rounded-xl p-6 shadow-lg';
+                fileCard.innerHTML = `
+                    <div class="flex items-start justify-between flex-wrap gap-4">
+                        <div class="flex items-start space-x-4 flex-1">
+                            <i class="fas ${getFileIcon(file.name)} text-purple-600 text-3xl"></i>
+                            <div class="flex-1">
+                                <h4 class="text-gray-800 font-bold text-lg mb-2">${file.name}</h4>
+                                <div class="flex gap-3 text-sm text-gray-600">
+                                    <span><i class="fas fa-hdd mr-1"></i>${file.size_formatted}</span>
+                                    <span><i class="fas fa-tag mr-1"></i>${file.type}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            ${file.download_url ? `
+                                <a href="${file.download_url}" target="_blank"
+                                    class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all">
+                                    <i class="fas fa-download mr-2"></i>Download
+                                </a>
+                            ` : '<button disabled class="bg-gray-400 text-white px-6 py-3 rounded-lg opacity-50">Unavailable</button>'}
+                        </div>
+                    </div>
+                `;
+                filesList.appendChild(fileCard);
+            });
+
+            resultsSection.classList.remove('hidden');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('teraboxUrl').value.trim();
+
+            form.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            errorState.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to fetch files');
+                }
+
+                displayResults(data);
+            } catch (error) {
+                showError(error.message || 'Network error. Please try again.');
+                form.classList.remove('hidden');
+            } finally {
+                loadingState.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

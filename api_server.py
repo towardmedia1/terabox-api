@@ -3,9 +3,13 @@ import time
 import hashlib
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import httpx
 from urllib.parse import quote, unquote
+import os
 
 # Import bypass module
 try:
@@ -18,6 +22,15 @@ app = FastAPI(
     title="Terabox Downloader API - Cookie-Free",
     description="Claude Sonnet Powered - No Manual Cookie Updates Required",
     version="2.0.0"
+)
+
+# Enable CORS for frontend - Allow all origins, credentials, methods, and headers
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,  # Allow credentials
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 class TeraboxRequest(BaseModel):
@@ -162,6 +175,14 @@ async def try_alternative_endpoints(client: httpx.AsyncClient, surl: str) -> dic
 
 @app.get("/")
 async def root():
+    """
+    Serve the frontend HTML page
+    """
+    # Check if index.html exists in the same directory
+    if os.path.exists("index.html"):
+        return FileResponse("index.html", media_type="text/html")
+    
+    # Fallback to API info if index.html not found
     return {
         "status": "online",
         "version": "2.0.0",

@@ -32,9 +32,17 @@ cd terbox-api
 # Install dependencies
 pip install -r requirements.txt
 
-# Run server
+# Run API server
 python -m uvicorn api_server:app --reload --port 8000
+
+# In another terminal, run frontend server
+python serve_frontend.py
 ```
+
+**Access:**
+- API: `http://localhost:8000`
+- Frontend: `http://localhost:3000/index.html`
+- API Docs: `http://localhost:8000/docs`
 
 ### Deploy to Render
 
@@ -45,6 +53,15 @@ python -m uvicorn api_server:app --reload --port 8000
    - **Build Command:** `pip install -r requirements.txt`
    - **Start Command:** `uvicorn api_server:app --host 0.0.0.0 --port $PORT`
    - **Environment:** Python 3
+
+5. After deployment, update `index.html`:
+   - Replace `https://onrender.com` with your actual Render URL
+   - Example: `https://your-app-name.onrender.com`
+
+6. Deploy frontend:
+   - Option 1: Host `index.html` on GitHub Pages
+   - Option 2: Include in same Render deployment (add static file serving)
+   - Option 3: Use Netlify/Vercel for frontend only
 
 ## 📡 API Endpoints
 
