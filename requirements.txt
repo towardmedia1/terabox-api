@@ -1,4 +1,25 @@
-fastapi
-uvicorn
-httpx
-pydantic
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# HTTP Client with connection pooling and HTTP/2 support
+httpx==0.26.0
+h2==4.1.0
+
+# Redis Async Client
+redis[hiredis]==5.0.1
+hiredis==2.3.2
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Production Server (ASGI)
+gunicorn==21.2.0
+
+# Optional: Environment variable management
+python-dotenv==1.0.0
+
+# Optional: JSON logging for production
+python-json-logger==2.0.7

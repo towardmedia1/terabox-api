@@ -4,9 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -23,6 +20,17 @@ wheels/
 .installed.cfg
 *.egg
 
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# Environment Variables
+.env
+.env.local
+.env.production
+
 # IDE
 .vscode/
 .idea/
@@ -30,23 +38,24 @@ wheels/
 *.swo
 *~
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment
-.env
-.env.local
-
 # Logs
 *.log
+logs/
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
 
-# Temporary
-*.tmp
-*.bak
-index.html.txt
+# Docker
+*.tar
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Redis
+dump.rdb
+appendonly.aof
